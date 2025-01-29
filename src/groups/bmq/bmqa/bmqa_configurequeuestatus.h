@@ -59,6 +59,13 @@ namespace bmqa {
 /// queue broker.
 class ConfigureQueueStatus {
   private:
+    // PRIVATE TYPES
+
+    // Use of an `UnspecifiedBool` to prevent implicit conversions to
+    // integral values, and comparisons between different classes which
+    // have boolean operators.
+    typedef bsls::UnspecifiedBool<ConfigureQueueStatus>::BoolType BoolType;
+
     // DATA
 
     /// QueueId associated with the open queue operation
@@ -102,7 +109,7 @@ class ConfigureQueueStatus {
     // ACCESSORS
 
     /// Return true if this result indicates success, and false otherwise.
-    operator bool() const;
+    operator BoolType() const;
 
     /// Return the queueId associated to this operation result, if any.
     const QueueId& queueId() const;
@@ -197,9 +204,10 @@ ConfigureQueueStatus::operator=(const ConfigureQueueStatus& other)
 }
 
 // ACCESSORS
-inline ConfigureQueueStatus::operator bool() const
+inline ConfigureQueueStatus::operator BoolType() const
 {
-    return result() == bmqt::ConfigureQueueResult::e_SUCCESS;
+    return bsls::UnspecifiedBool<ConfigureQueueStatus>::makeValue(
+        result() == bmqt::ConfigureQueueResult::e_SUCCESS);
 }
 
 inline const QueueId& ConfigureQueueStatus::queueId() const
