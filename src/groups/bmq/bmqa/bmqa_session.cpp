@@ -637,6 +637,36 @@ bmqt::CloseQueueResult::Enum SessionUtil::validateAndSetCloseQueueParameters(
     return bmqt::CloseQueueResult::e_SUCCESS;
 }
 
+class MessageEventCreator {
+    bmqp::BlobPoolUtil::BlobSpPool* d_blobSpPool_p;
+    bmqimp::BrokerSession*          d_brokerSession_p;
+
+  public:
+    MessageEventCreator(bmqp::BlobPoolUtil::BlobSpPool* blobSpPool_p,
+                        bmqimp::BrokerSession*          brokerSession_p)
+    : d_blobSpPool_p(blobSpPool_p)
+    , d_brokerSession_p(brokerSession_p)
+    {
+        // PRECONDITIONS
+        BSLS_ASSERT_OPT(d_blobSpPool_p);
+        BSLS_ASSERT_OPT(d_brokerSession_p);
+    }
+
+    MessageEvent operator()()
+    {
+        MessageEvent result;
+
+        // MessageEvent::d_impl is private
+        bsl::shared_ptr<bmqimp::Event>& eventImplSpRef =
+            reinterpret_cast<bsl::shared_ptr<bmqimp::Event>&>(result);
+
+        eventImplSpRef = d_brokerSession_p->createEvent();
+        eventImplSpRef->configureAsMessageEvent(d_blobSpPool_p);
+
+        return result;
+    }
+};
+
 }  // close unnamed namespace
 
 // -------------------------
@@ -662,6 +692,27 @@ SessionImpl::SessionImpl(const bmqt::SessionOptions&            options,
 , d_application_mp(0)
 {
     // NOTHING
+}
+
+void SessionImpl::loadMessageEventBuilder(MessageEventBuilder* builder)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT(d_application_mp && "The session was not started");
+    BSLS_ASSERT(builder);
+
+    MessageEventBuilder& builderRef = *builder;
+
+    // Get MessageEventBuilderImpl from MessageEventBuilder
+    MessageEventBuilderImpl& builderImplRef =
+        reinterpret_cast<MessageEventBuilderImpl&>(builderRef);
+
+    builderImplRef.d_guidGenerator_sp = d_guidGenerator_sp;
+
+    builderImplRef.d_messageEventFactory = MessageEventCreator(
+        d_application_mp->blobSpPool(),
+        &d_application_mp->brokerSession());
+
+    builder->reset();
 }
 
 // -------------
@@ -774,48 +825,14 @@ MessageEventBuilder Session::createMessageEventBuilder()
 
     MessageEventBuilder builder;
 
-    // Get MessageEventBuilderImpl from MessageEventBuilder
-    MessageEventBuilderImpl& builderRef =
-        reinterpret_cast<MessageEventBuilderImpl&>(builder);
-
-    builderRef.d_guidGenerator_sp = d_impl.d_guidGenerator_sp;
-
-    // Get bmqimp::Event sharedptr from MessageEventBuilderImpl
-    bsl::shared_ptr<bmqimp::Event>& eventImplSpRef =
-        reinterpret_cast<bsl::shared_ptr<bmqimp::Event>&>(
-            builderRef.d_msgEvent);
-
-    eventImplSpRef = d_impl.d_application_mp->brokerSession().createEvent();
-
-    eventImplSpRef->configureAsMessageEvent(
-        d_impl.d_application_mp->blobSpPool());
+    d_impl.loadMessageEventBuilder(&builder);
 
     return builder;
 }
 
 void Session::loadMessageEventBuilder(MessageEventBuilder* builder)
 {
-    // PRECONDITIONS
-    BSLS_ASSERT(d_impl.d_application_mp && "The session was not started");
-    BSLS_ASSERT(builder);
-
-    MessageEventBuilder& builderRef = *builder;
-
-    // Get MessageEventBuilderImpl from MessageEventBuilder
-    MessageEventBuilderImpl& builderImplRef =
-        reinterpret_cast<MessageEventBuilderImpl&>(builderRef);
-
-    builderImplRef.d_guidGenerator_sp = d_impl.d_guidGenerator_sp;
-
-    // Get bmqimp::Event sharedptr from MessageEventBuilderImpl
-    bsl::shared_ptr<bmqimp::Event>& eventImplSpRef =
-        reinterpret_cast<bsl::shared_ptr<bmqimp::Event>&>(
-            builderImplRef.d_msgEvent);
-
-    eventImplSpRef = d_impl.d_application_mp->brokerSession().createEvent();
-
-    eventImplSpRef->configureAsMessageEvent(
-        d_impl.d_application_mp->blobSpPool());
+    d_impl.loadMessageEventBuilder(builder);
 }
 
 void Session::loadConfirmEventBuilder(ConfirmEventBuilder* builder)
