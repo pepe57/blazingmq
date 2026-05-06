@@ -94,7 +94,7 @@ typedef bsl::pair<mqbs::DataStoreRecordHandle, Record> HandleRecordPair;
 
 void recoveredQueuesCb(
     int                                           partitionId,
-    const mqbs::DataStoreConfig::QueueKeyInfoMap& queueKeyInfoMap)
+    const mqbs::DataStoreConfig::QueueKeyInfoMap* queueKeyInfoMap)
 {
     static_cast<void>(partitionId);
     static_cast<void>(queueKeyInfoMap);
@@ -730,7 +730,7 @@ static void test1_breathingTest()
     Tester           tester(k_FILE_STORE_LOCATION);
     mqbs::FileStore& fs = tester.fileStore();
 
-    int rc = fs.open();
+    int rc = fs.open(0);
     BMQTST_ASSERT_EQ(0, rc);
     if (rc) {
         cout << "Failed to open partition, rc: " << rc << endl;
@@ -861,7 +861,7 @@ static void test2_printTest()
 
     Tester           tester(k_FILE_STORE_LOCATION);
     mqbs::FileStore& fs = tester.fileStore();
-    BSLS_ASSERT_OPT(fs.open() == 0);
+    BSLS_ASSERT_OPT(fs.open(0) == 0);
 
     // Set primary.
     unsigned int        primaryLeaseId = 1;

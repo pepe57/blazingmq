@@ -295,6 +295,9 @@ void ClusterStateManager::do_initializeQueueKeyInfoMap(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
     BSLS_ASSERT_SAFE(d_clusterFSM.isSelfHealed());
+    // CSL is the source of truth for the Primary only,
+    // and we assume Leader and Primary are always the same node.
+    BSLS_ASSERT_SAFE(d_clusterFSM.isSelfLeader());
 
     d_storageManager_p->initializeQueueKeyInfoMap(*d_state_p);
 }

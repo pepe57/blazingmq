@@ -474,16 +474,16 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// be treated as fatal.  Also note that file store will attempt to
     /// recover any outstanding messages from the files found at the
     /// location indicated by the configuration of this instance.
-    int openInRecoveryMode(bsl::ostream&          errorDescription,
-                           const QueueKeyInfoMap& queueKeyInfoMap);
+    int openInRecoveryMode(bsl::ostream&    errorDescription,
+                           QueueKeyInfoMap* queueKeyInfoMap);
 
     /// Make two passes over the journal file iterator `jit` in reverse
     /// iteration.
     ///
-    /// - First pass: Retrieve the list of non-deleted queues from `jit`.  In
-    /// non-FSM workflow, populate `queueKeyInfoMap` with that list; in FSM
-    /// workflow, use information from `queueKeyInfoMap` already populated by
-    /// the CSL to validate against that list.
+    /// - First pass: Retrieve the list of non-deleted queues from `jit`.  If
+    /// the specified `withCSL` is `false`, populate `queueKeyInfoMap` with
+    /// that list; otherwise, use information from `queueKeyInfoMap` already
+    /// populated by the CSL to validate against that list.
     ///
     /// - Second pass: Iterate over jit`, `dit`, and optionally `qit` if
     /// `d_qListAware` is true, and retrieve outstanding records for all those
@@ -501,7 +501,8 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
                         bsls::Types::Uint64* dataOffset,
                         JournalFileIterator* jit,
                         QlistFileIterator*   qit,
-                        DataFileIterator*    dit);
+                        DataFileIterator*    dit,
+                        bool                 withCSL);
 
     /// Rollover the outstanding messages belonging to the storages mapped
     /// to this file store, from active file set into the rollover file set,
@@ -758,10 +759,9 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     // MANIPULATORS
 
-    /// Open this instance using the specified `queueKeyInfoMap`. Return
-    /// zero on success, non-zero value otherwise.
-    int open(const QueueKeyInfoMap& queueKeyInfoMap = QueueKeyInfoMap())
-        BSLS_KEYWORD_OVERRIDE;
+    /// Open this instance using the optionally specified `queueKeyInfoMap`.
+    /// Return zero on success, non-zero value otherwise.
+    int open(QueueKeyInfoMap* queueKeyInfoMap) BSLS_KEYWORD_OVERRIDE;
 
     /// Close this instance.  If the optional `flush` flag is true, flush
     /// the data store to disk.
